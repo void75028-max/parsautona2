@@ -322,12 +322,43 @@ if ($MemoryCards.Count -gt 0) {
     }
 }
 
-# Procura o executável do Parsec em Program Files, Program Files (x86) e AppData
+# Procura um arquivo do Parsec (ex.: parsecd.exe) em vários lugares: pastas conhecidas,
+# busca dentro de Program Files / Program Files (x86), registro do Windows e Menu Iniciar.
 function AcharParsec($arquivo) {
-    foreach ($base in @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:APPDATA)) {
-        if (-not $base) { continue }
+    $bases = @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:ProgramW6432, $env:APPDATA, $env:LOCALAPPDATA) | Where-Object { $_ } | Select-Object -Unique
+
+    # 1) locais conhecidos
+    foreach ($base in $bases) {
         $c = Join-Path $base "Parsec\$arquivo"
         if (Test-Path $c) { return $c }
+    }
+    # 2) busca dentro de qualquer pasta "Parsec" (inclusive subpastas)
+    foreach ($base in $bases) {
+        $dir = Join-Path $base 'Parsec'
+        if (Test-Path $dir) {
+            $f = Get-ChildItem $dir -Filter $arquivo -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($f) { return $f.FullName }
+        }
+    }
+    # 3) registro de programas instalados
+    $chaves = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
+              'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
+              'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*'
+    foreach ($k in (Get-ItemProperty $chaves -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like 'Parsec*' })) {
+        $dirs = @($k.InstallLocation)
+        if ($k.DisplayIcon) { $dirs += (Split-Path (($k.DisplayIcon -replace ',-?\d+$', '') -replace '"', '') -ErrorAction SilentlyContinue) }
+        foreach ($d in ($dirs | Where-Object { $_ })) {
+            $f = Join-Path $d $arquivo
+            if (Test-Path $f) { return $f }
+        }
+    }
+    # 4) atalho do Parsec no Menu Iniciar (lê para onde ele aponta)
+    $ws = New-Object -ComObject WScript.Shell
+    foreach ($sm in @("$env:ProgramData\Microsoft\Windows\Start Menu\Programs", "$env:APPDATA\Microsoft\Windows\Start Menu\Programs")) {
+        foreach ($l in (Get-ChildItem $sm -Filter 'Parsec*.lnk' -Recurse -ErrorAction SilentlyContinue)) {
+            $t = $ws.CreateShortcut($l.FullName).TargetPath
+            if ($t -and (Test-Path $t) -and ((Split-Path $t -Leaf) -eq $arquivo)) { return $t }
+        }
     }
     return $null
 }
@@ -432,7 +463,22 @@ function CriarAtalho($nome, $alvo) {
 
 CriarAtalho 'PCSX2' (Join-Path $Pasta 'pcsx2-qt.exe')
 if (-not $PularParsec) {
-    CriarAtalho 'Parsec' (AcharParsec 'parsecd.exe')
+    $exeParsec = AcharParsec 'parsecd.exe'
+    if ($exeParsec) {
+        CriarAtalho 'Parsec' $exeParsec
+    } else {
+        # Plano B: copia o atalho que o próprio instalador criou no Menu Iniciar
+        $lnkMenu = @("$env:ProgramData\Microsoft\Windows\Start Menu\Programs", "$env:APPDATA\Microsoft\Windows\Start Menu\Programs") |
+            ForEach-Object { Get-ChildItem $_ -Filter 'Parsec*.lnk' -Recurse -ErrorAction SilentlyContinue } | Select-Object -First 1
+        if ($lnkMenu) {
+            Copy-Item $lnkMenu.FullName (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Parsec.lnk') -Force
+            Write-Host 'Atalho do Parsec copiado do Menu Iniciar.' -ForegroundColor Green
+        } else {
+            Write-Host 'Parsec não encontrado. Arquivos .exe nas pastas do Parsec (me envie esta lista):' -ForegroundColor Yellow
+            Get-ChildItem @("$env:ProgramFiles\Parsec", "${env:ProgramFiles(x86)}\Parsec", "$env:APPDATA\Parsec") -Recurse -Filter *.exe -ErrorAction SilentlyContinue |
+                ForEach-Object { Write-Host "  $($_.FullName)" }
+        }
+    }
 }
 
 # 8) Limpeza de arquivos temporários
