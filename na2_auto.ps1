@@ -6,7 +6,7 @@
   Requer execução como Administrador.
 
   Uso local:  powershell -ExecutionPolicy Bypass -File .\pcsx2-nightly.ps1
-  Via GitHub: irm https://raw.githubusercontent.com/void75028-max/parsautona2/main/pcsx2-nightly.ps1 | iex
+  Via GitHub: irm https://raw.githubusercontent.com/void75028-max/parsautona2/main/na2_auto.ps1 | iex
  
 #>
 param(
