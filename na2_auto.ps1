@@ -5,7 +5,7 @@
   aplica config.json do Parsec (60 FPS) reiniciando o serviço e força GPU de Alto Desempenho.
   Requer execução como Administrador.
 
-  Uso local:  powershell -ExecutionPolicy Bypass -File .\pcsx2-nightly.ps1
+  Uso local:  powershell -ExecutionPolicy Bypass -File .\na2_auto.ps1
   Via GitHub: irm https://raw.githubusercontent.com/void75028-max/parsautona2/main/na2_auto.ps1 | iex
  
 #>
@@ -388,7 +388,12 @@ function InstalarSilencioso($nome, $url, $argumentos, $jaInstalado) {
 
 if (-not $PularViGEm) {
     InstalarSilencioso 'ViGEmBus' 'https://github.com/nefarius/ViGEmBus/releases/download/v1.22.0/ViGEmBus_1.22.0_x64_x86_arm64.exe' `
-        @('/exenoui', '/qn', '/norestart') ($null -ne (Get-Service 'ViGEmBus' -ErrorAction SilentlyContinue))
+        @('/exenoui', '/qn', '/norestart') ((Test-Path "$env:SystemRoot\System32\drivers\ViGEmBus.sys") -and ($null -ne (Get-Service 'ViGEmBus' -ErrorAction SilentlyContinue)))
+
+    # Confere se o driver aparece no Windows (Gerenciador de Dispositivos > Dispositivos do sistema)
+    $dev = Get-PnpDevice -FriendlyName '*Virtual Gamepad Emulation Bus*' -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($dev) { Write-Host "ViGEmBus ativo no Windows: $($dev.FriendlyName) ($($dev.Status))" -ForegroundColor Cyan }
+    else { Write-Host 'ViGEmBus: o driver ainda não aparece no Gerenciador de Dispositivos (pode precisar reiniciar o PC).' -ForegroundColor Yellow }
 }
 
 # VC++ é exigido pelo PCSX2, então instala mesmo com -PularParsec
@@ -445,6 +450,21 @@ foreach ($exe in $ExecutaveisAltoDesempenho) {
         New-ItemProperty -Path $RegGpu -Name $exe -Value 'GpuPreference=2;' -PropertyType String -Force | Out-Null
         Write-Host "Definido como Alto Desempenho na GPU: $(Split-Path $exe -Leaf)" -ForegroundColor Cyan
     }
+}
+
+# 6b) Plano de energia: Alto Desempenho (se o PC não tiver esse plano, cria uma cópia dele)
+try {
+    $guidAlto = '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c'
+    if (-not ((powercfg /list) -match $guidAlto)) {
+        $dup = (powercfg /duplicatescheme $guidAlto) -join ' '
+        if ($dup -match '([0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12})') { $guidAlto = $Matches[1] }
+        else { throw 'o plano Alto Desempenho não está disponível neste PC.' }
+    }
+    powercfg /setactive $guidAlto
+    if ($LASTEXITCODE -ne 0) { throw "powercfg retornou código $LASTEXITCODE" }
+    Write-Host 'Plano de energia definido: Alto Desempenho.' -ForegroundColor Green
+} catch {
+    Write-Host "Não consegui mudar o plano de energia: $($_.Exception.Message)" -ForegroundColor Yellow
 }
 
 # 7) Criação de atalhos na Área de Trabalho
