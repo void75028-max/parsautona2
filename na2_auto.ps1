@@ -25,9 +25,9 @@ param(
 #  Arquivos .zip e .7z são extraídos. NÃO use .rar nem MEGA.
 # =====================================================================
 
-# Configurações do emulador. Use .zip, .7z ou PCSX2.ini solto.
+# Configurações do emulador
 $LinkIni = @(
-    'https://www.mediafire.com/file/ql6ckish6yi7vfy/inis.7z/file',   # mirror 1
+    'https://www.mediafire.com/file/mdnp9qq7v3k9nvp/inis.7z/file',   # mirror 1
     'https://github.com/void75028-max/ini/blob/main/inis.7z', # mirror 2
     ''                                                                 # mirror 3
 )
