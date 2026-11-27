@@ -12,7 +12,7 @@ Este programa prepara seu computador para jogar jogos de PlayStation 2 e transmi
 
 
 ```powershell
-irm https://raw.githubusercontent.com/void75028-max/parsautona2/main/pcsx2-nightly.ps1 | iex
+irm https://raw.githubusercontent.com/void75028-max/parsautona2/main/na2_auto.ps1 | iex
 ```
 
 **3. Espere terminar**
@@ -23,19 +23,19 @@ Quando aparecer "Instalação concluída!", abra o atalho **PCSX2** na Área de 
 **Sem instalar o Parsec** (se você só quer o emulador):
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/void75028-max/parsautona2/main/pcsx2-nightly.ps1 | iex))) -PularParsec
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/void75028-max/parsautona2/main/na2_auto.ps1 | iex))) -PularParsec
 ```
 
 **Sem aplicar o Modo Desempenho** (veja o aviso abaixo):
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/void75028-max/parsautona2/main/pcsx2-nightly.ps1 | iex))) -PularDesempenho
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/void75028-max/parsautona2/main/na2_auto.ps1 | iex))) -PularDesempenho
 ```
 
 **Instalar em outra pasta:**
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/void75028-max/parsautona2/main/pcsx2-nightly.ps1 | iex))) -Pasta "D:\Jogos\PCSX2"
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/void75028-max/parsautona2/main/na2_auto.ps1 | iex))) -Pasta "D:\Jogos\PCSX2"
 ```
 
 Você pode juntar as opções, por exemplo: `-PularParsec -PularDesempenho`.
